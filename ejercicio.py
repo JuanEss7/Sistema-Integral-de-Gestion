@@ -80,7 +80,7 @@ class Cliente(Entidad):
         try:
             self.validar()
         except Exception:
-            # Actualizamos los datos con los valores anteriores y lanzamos la misma exepcion
+            # Actualizamos los datos con los valores anteriores y lanzamos la misma excepcion
             self.nombre = nombre_anterior
             self.correo = correo_anterior
             self.telefono = telefono_anterior
@@ -120,17 +120,29 @@ class Cliente(Entidad):
         return True
     
 class Servicio(Entidad):
-    def __init__(self, id, fecha_creacion, estado,nombre, precio, disponibilidad):
-
+    def __init__(self, id, fecha_creacion=None, estado="Activo",nombre=None, precio=None, disponibilidad=None):
         super().__init__(id, fecha_creacion, estado)
-
         self.nombre = nombre
         self.precio = precio
         self.disponibilidad = disponibilidad
 
-    @abstractmethod
-    def calcular_costo(self, duracion, descuento=0):
-        pass
+    
+    def calcular_costo(self, duracion, descuento=0, impuesto=0):
+        if not isinstance(duracion, (int, float)) or duracion <= 0:
+            raise CalculoCostoError("La duracion debe ser mayor que cero.")
+
+        if not isinstance(descuento, (int, float)) or descuento < 0 or descuento > 100:
+            raise CalculoCostoError("El descuento debe estar entre 0 y 100.")
+
+        if not isinstance(impuesto, (int, float)) or impuesto < 0 or impuesto > 100:
+            raise CalculoCostoError("El impuesto debe estar entre 0 y 100.")
+        
+        subtotal = self.precio * duracion
+        valor_descuento = subtotal * descuento / 100
+        subtotal = subtotal - valor_descuento
+        total = subtotal + (subtotal * impuesto / 100)
+
+        return round(total, 2)
 
     @abstractmethod
     def describir_servicio(self):
@@ -141,10 +153,23 @@ class Servicio(Entidad):
         pass
 
     def validar(self):
-        pass
+        if not isinstance(self.nombre, str) or self.nombre.strip() == "":
+            raise DatosFaltantesError("El nombre del servicio es obligatorio.")
+
+        if not isinstance(self.precio, (int, float)) or self.precio <= 0:
+            raise CalculoCostoError("El precio debe ser un numero mayor que cero.")
+
+        if self.estado not in ("Activo", "Inactivo"):
+            raise OperacionNoPermitidaError("El estado del servicio no es valido.")
+
+        if not isinstance(self.disponibilidad, bool):
+            raise ValueError("La disponibilidad debe ser True o False.")
+        self.validar_parametros()
+        return True
 
     def consultar_disponibilidad(self):
-        pass
+        return self.disponibilidad and self.estado == "Activo"
+    
 class ReservaSala(Servicio):
     def __init__(self, id, fecha_creacion, estado,nombre, precio, disponibilidad,capacidad, ubicacion):
 
