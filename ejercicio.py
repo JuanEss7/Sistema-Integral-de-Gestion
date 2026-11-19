@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
 # Excepciones personalizadas
 class ClienteInvalidoError(Exception):
     # Se lanza cuando los datos de un cliente no cumplen las validaciones.
@@ -20,9 +21,12 @@ class CalculoCostoError(Exception):
     pass
 
 class Entidad(ABC):
-    def __init__(self, id, fecha_creacion, estado):
-        self.id = id
-        self.fecha_creacion = fecha_creacion
+    def __init__(self, id, fecha_creacion = None, estado="Activo"):
+        if id is None or str(id).strip() == "":
+            raise DatosFaltantesError("El ID es obligatorio.")
+
+        self.id = str(id)
+        self.fecha_creacion = fecha_creacion or datetime.now()
         self.estado = estado
 
     @abstractmethod
@@ -30,9 +34,14 @@ class Entidad(ABC):
         pass
 
     def mostrar_informacion(self):
-        pass
+        return (
+            f"ID: {self.id} | Fecha: {self.fecha_creacion} | "
+            f"Estado: {self.estado}"
+        )
 
     def cambiar_estado(self, nuevo_estado):
+        if nuevo_estado is None or len(nuevo_estado) == 0 or nuevo_estado not in ("Activo","Inactivo"):
+            raise DatosFaltantesError("Debe indicar el nuevo estado.")
         self.estado = nuevo_estado
 
 class Cliente(Entidad):
