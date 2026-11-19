@@ -45,34 +45,80 @@ class Entidad(ABC):
         self.estado = nuevo_estado
 
 class Cliente(Entidad):
-    def __init__(self, id, fecha_creacion, estado,nombre, correo, telefono):
-
+    def __init__(self, id, fecha_creacion=None, estado="Activo", nombre=None, correo=None, telefono=None):
         super().__init__(id, fecha_creacion, estado)
-
         self.nombre = nombre
         self.correo = correo
         self.telefono = telefono
-
+        self.validar()
+# Metodo encargado de validar los datos del cliente
     def validar(self):
-        pass
-
-    def validar_datos(self):
-        pass
+        # Validando que el nombre sea texto
+        if not isinstance(self.nombre, str) or len(self.nombre.strip()) < 2:
+            raise ClienteInvalidoError("El nombre debe tener al menos dos caracteres.")
+        self.validar_correo()
+        self.validar_telefono()
+        if self.estado not in ("Activo", "Inactivo"):
+            raise ClienteInvalidoError("El estado debe ser Activo o Inactivo.")
+        return True
 
     def registrar_cliente(self):
         pass
-
-    def actualizar_datos(self):
-        pass
-
+# Metodo encargado de actualizar los datos del cliente
+    def actualizar_datos(self, nombre=None, correo=None, telefono=None):
+        # Guardamos los datos anteriores por si los nuevos son incorrectos.
+        nombre_anterior = self.nombre
+        correo_anterior = self.correo
+        telefono_anterior = self.telefono
+        #Actulizando datos
+        if nombre is not None:
+            self.nombre = nombre
+        if correo is not None:
+            self.correo = correo
+        if telefono is not None:
+            self.telefono = telefono
+        try:
+            self.validar()
+        except Exception:
+            # Actualizamos los datos con los valores anteriores y lanzamos la misma exepcion
+            self.nombre = nombre_anterior
+            self.correo = correo_anterior
+            self.telefono = telefono_anterior
+            raise
+        return True
+# Metodo encargado de mostrar la informacion registrada del cliente
     def mostrar_informacion(self):
-        pass
-
+        return (
+            f"{super().mostrar_informacion()} | Nombre: {self.nombre} | "
+            f"Correo: {self.correo} | Telefono: {self.telefono}"
+        )
+# Metodo encargado de validar el correo
     def validar_correo(self):
-        pass
+        # Validando que el correo sea texto
+        if not isinstance(self.correo, str):
+            raise ClienteInvalidoError("El correo debe ser texto.")
+        # Validando el correo
+        if "@" not in self.correo or "." not in self.correo:
+            raise ClienteInvalidoError("El correo electronico no es valido.")
 
+        if self.correo.startswith("@") or self.correo.endswith("@"):
+            raise ClienteInvalidoError("El correo electronico no es valido.")
+        return True
+# Metodo encargado de validar el telefono
     def validar_telefono(self):
-        pass
+        # Validando que el telefono sea texto
+        if self.telefono is None or not isinstance(self.telefono, str) or self.telefono == "":
+            raise DatosFaltantesError("El telefono es obligatorio.")
+        # Validando que sean digitos 
+        cantidad_digitos = 0
+        for caracter in self.telefono:
+            if caracter.isdigit():
+                cantidad_digitos += 1
+        # Validando la longitud
+        if cantidad_digitos < 7 or cantidad_digitos > 15:
+            raise ClienteInvalidoError("El telefono debe tener entre 7 y 15 digitos.")
+        return True
+    
 class Servicio(Entidad):
     def __init__(self, id, fecha_creacion, estado,nombre, precio, disponibilidad):
 
