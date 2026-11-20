@@ -222,25 +222,33 @@ class AlquilerEquipo(Servicio):
         )
     
 class AsesoriaEspecializada(Servicio):
-    def __init__(self, id, fecha_creacion, estado,nombre, precio, disponibilidad, especialidad, nombre_asesor, modalidad):
+    def __init__(self, id, fecha_creacion=None, estado="Activo",nombre=None, precio=None, disponibilidad=True,especialidad=None, nombre_asesor=None, modalidad=None):
 
         super().__init__(id, fecha_creacion, estado,nombre, precio, disponibilidad)
 
         self.especialidad = especialidad
         self.nombre_asesor = nombre_asesor
         self.modalidad = modalidad
-
-    def calcular_costo(self, duracion, descuento=0):
-        pass
+        self.validar()
 
     def describir_servicio(self):
-        pass
+        return (
+            f"Asesoria: {self.nombre}. Especialidad: {self.especialidad}. "
+            f"Asesor: {self.nombre_asesor}. Modalidad: {self.modalidad}. "
+            f"Precio por hora: ${self.precio}."
+        )
 
     def validar_parametros(self):
-        pass
+        if not isinstance(self.especialidad, str) or self.especialidad.strip() == "":
+            raise DatosFaltantesError("La especialidad es obligatoria.")
 
-    def validar(self):
-        pass
+        if not isinstance(self.nombre_asesor, str) or self.nombre_asesor.strip() == "":
+            raise DatosFaltantesError("El nombre del asesor es obligatorio.")
+
+        if self.modalidad not in ("Virtual", "Presencial"):
+            raise ValueError("La modalidad debe ser Virtual o Presencial.")
+
+
 class Reserva:
     def __init__(self, id_reserva, cliente, servicio,
                  duracion, fecha, estado):
