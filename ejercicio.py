@@ -171,24 +171,26 @@ class Servicio(Entidad):
         return self.disponibilidad and self.estado == "Activo"
     
 class ReservaSala(Servicio):
-    def __init__(self, id, fecha_creacion, estado,nombre, precio, disponibilidad,capacidad, ubicacion):
+    def __init__(self, id, fecha_creacion=None, estado="Activo",nombre=None, precio=None, disponibilidad=True,capacidad=None, ubicacion=None):
 
         super().__init__(id, fecha_creacion, estado,nombre, precio, disponibilidad)
 
         self.capacidad = capacidad
         self.ubicacion = ubicacion
-
-    def calcular_costo(self, duracion, descuento=0):
-        pass
-
-    def describir_servicio(self):
-        pass
-
+        self.validar()
+        
     def validar_parametros(self):
-        pass
+        if not isinstance(self.capacidad, int) or self.capacidad <= 0:
+            raise ValueError("La capacidad debe ser un entero positivo.")
 
-    def validar(self):
-        pass
+        if not isinstance(self.ubicacion, str) or self.ubicacion.strip() == "":
+            raise DatosFaltantesError("La ubicacion es obligatoria.")
+        
+    def describir_servicio(self):
+        return (
+            f"Sala: {self.nombre}. Capacidad: {self.capacidad} personas. "
+            f"Ubicacion: {self.ubicacion}. Precio por hora: ${self.precio}."
+        )
 class AlquilerEquipo(Servicio):
     def __init__(self, id, fecha_creacion, estado,nombre, precio, disponibilidad,tipo_equipo, cantidad_disponible):
 
