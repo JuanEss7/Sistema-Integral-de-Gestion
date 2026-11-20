@@ -178,7 +178,7 @@ class ReservaSala(Servicio):
         self.capacidad = capacidad
         self.ubicacion = ubicacion
         self.validar()
-        
+
     def validar_parametros(self):
         if not isinstance(self.capacidad, int) or self.capacidad <= 0:
             raise ValueError("La capacidad debe ser un entero positivo.")
@@ -192,24 +192,35 @@ class ReservaSala(Servicio):
             f"Ubicacion: {self.ubicacion}. Precio por hora: ${self.precio}."
         )
 class AlquilerEquipo(Servicio):
-    def __init__(self, id, fecha_creacion, estado,nombre, precio, disponibilidad,tipo_equipo, cantidad_disponible):
+    def __init__(self, id, fecha_creacion=None, estado="Activo",nombre=None, precio=None, disponibilidad=True,tipo_equipo=None, cantidad_disponible=None):
 
         super().__init__(id, fecha_creacion, estado,nombre, precio, disponibilidad)
 
         self.tipo_equipo = tipo_equipo
         self.cantidad_disponible = cantidad_disponible
-
-    def calcular_costo(self, duracion, descuento=0):
-        pass
+        self.validar()
 
     def describir_servicio(self):
-        pass
+        return (
+            f"Equipo: {self.nombre}. Tipo: {self.tipo_equipo}. "
+            f"Cantidad disponible: {self.cantidad_disponible}. "
+            f"Precio por dia: ${self.precio}."
+        )
 
     def validar_parametros(self):
-        pass
+        if not isinstance(self.tipo_equipo, str) or self.tipo_equipo.strip() == "":
+            raise DatosFaltantesError("El tipo de equipo es obligatorio.")
 
-    def validar(self):
-        pass
+        if not isinstance(self.cantidad_disponible, int) or self.cantidad_disponible < 0:
+            raise ValueError(
+                "La cantidad disponible debe ser un entero igual o mayor que cero."
+            )
+    def consultar_disponibilidad(self):
+        return (
+            super().consultar_disponibilidad()
+            and self.cantidad_disponible > 0
+        )
+    
 class AsesoriaEspecializada(Servicio):
     def __init__(self, id, fecha_creacion, estado,nombre, precio, disponibilidad, especialidad, nombre_asesor, modalidad):
 
