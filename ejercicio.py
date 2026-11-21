@@ -63,7 +63,7 @@ class Cliente(Entidad):
         return True
 
     def registrar_cliente(self):
-        pass
+        return True
 # Metodo encargado de actualizar los datos del cliente
     def actualizar_datos(self, nombre=None, correo=None, telefono=None):
         # Guardamos los datos anteriores por si los nuevos son incorrectos.
@@ -375,43 +375,167 @@ class GestorSistema:
         self.reservas = []
 
     def registrar_cliente(self, cliente):
-        pass
+        try:
+            if not isinstance(cliente, Cliente):
+                raise ClienteInvalidoError("El objeto no es un cliente.")
+
+            cliente.validar()
+
+            if self.buscar_cliente(cliente.id) is not None:
+                raise OperacionNoPermitidaError("Ya existe un cliente con ese ID.")
+
+            self.clientes.append(cliente)
+            cliente.registrar_cliente()
+            return cliente
+
+        except Exception as error:
+            #Implementar log
+            raise
 
     def buscar_cliente(self, id):
-        pass
+        for cliente in self.clientes:
+            if cliente.id == str(id):
+                return cliente
+        return None
 
     def actualizar_cliente(self, id, datos):
-        pass
+        cliente = self.buscar_cliente(id)
+
+        if cliente is None:
+            raise ClienteInvalidoError("No se encontro el cliente.")
+
+        if not isinstance(datos, dict):
+            raise ValueError("Los datos deben enviarse en un diccionario.")
+
+        try:
+            cliente.actualizar_datos(
+                nombre=datos.get("nombre"),
+                correo=datos.get("correo"),
+                telefono=datos.get("telefono")
+            )
+            return cliente
+
+        except Exception as error:
+            raise
 
     def eliminar_cliente(self, id):
-        pass
+        cliente = self.buscar_cliente(id)
 
-    def registrar_servicio(self, servicio):
-        pass
+        if cliente is None:
+            raise ClienteInvalidoError("No se encontro el cliente.")
+
+        for reserva in self.reservas:
+            if reserva.cliente.id == cliente.id and reserva.estado in ("Pendiente", "Confirmada"):
+                raise OperacionNoPermitidaError("El cliente tiene reservas activas.")
+
+        self.clientes.remove(cliente)
+        return True
 
     def buscar_servicio(self, id):
-        pass
+        for servicio in self.servicios:
+            if servicio.id == str(id):
+                return servicio
+        return None
+    def registrar_servicio(self, servicio):
+        try:
+            if not isinstance(servicio, Servicio):
+                raise ValueError("El objeto no es un servicio valido.")
+
+            servicio.validar()
+
+            if self.buscar_servicio(servicio.id) is not None:
+                raise OperacionNoPermitidaError("Ya existe un servicio con ese ID." )
+
+            self.servicios.append(servicio)
+            return servicio
+
+        except Exception as error:
+            raise
+
 
     def eliminar_servicio(self, id):
-        pass
+        servicio = self.buscar_servicio(id)
 
-    def crear_reserva(self, reserva):
-        pass
+        if servicio is None:
+            raise ServicioNoDisponibleError("No se encontro el servicio.")
+
+        for reserva in self.reservas:
+            if reserva.servicio.id == servicio.id and reserva.estado in ("Pendiente", "Confirmada"):
+                raise OperacionNoPermitidaError("El servicio tiene reservas activas.")
+
+        self.servicios.remove(servicio)
+        return True
 
     def buscar_reserva(self, id):
-        pass
+        for reserva in self.reservas:
+            if reserva.id_reserva == str(id):
+                return reserva
+        return None
+    
+    def crear_reserva(self, reserva):
+        try:
+            if not isinstance(reserva, Reserva):
+                raise ReservaInvalidaError("El objeto no es una reserva.")
+
+            reserva.validar()
+
+            if self.buscar_cliente(reserva.cliente.id) is None:
+                raise ReservaInvalidaError("El cliente no esta registrado en el sistema.")
+
+            if self.buscar_servicio(reserva.servicio.id) is None:
+                raise ReservaInvalidaError("El servicio no esta registrado en el sistema.")
+
+            if self.buscar_reserva(reserva.id_reserva) is not None:
+                raise OperacionNoPermitidaError("Ya existe una reserva con ese ID.")
+
+            self.reservas.append(reserva)
+            return reserva
+
+        except Exception as error:
+            raise
+    def confirmar_reserva(self, id):
+        reserva = self.buscar_reserva(id)
+
+        if reserva is None:
+            raise ReservaInvalidaError("No se encontro la reserva.")
+
+        try:
+            reserva.confirmar()
+            return reserva
+        except Exception as error:
+            raise
+
+    def procesar_reserva(self, id):
+        reserva = self.buscar_reserva(id)
+        if reserva is None:
+            raise ReservaInvalidaError("No se encontro la reserva.")
+        try:
+            reserva.procesar()
+            return reserva
+        except Exception as error:
+            raise
 
     def cancelar_reserva(self, id):
-        pass
+        reserva = self.buscar_reserva(id)
+
+        if reserva is None:
+            raise ReservaInvalidaError("No se encontro la reserva.")
+
+        try:
+            reserva.cancelar()
+            return reserva
+        except Exception as error:
+            raise
 
     def listar_clientes(self):
-        pass
+        return self.clientes.copy()
 
     def listar_servicios(self):
-        pass
+        return self.servicios.copy()
 
     def listar_reservas(self):
-        pass
+        return self.reservas.copy()
+    
 class ManejadorErrores:
     def __init__(self, archivo="software_fj.log"):
         self.archivo = archivo
