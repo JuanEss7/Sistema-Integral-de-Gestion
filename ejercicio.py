@@ -19,6 +19,28 @@ class DatosFaltantesError(Exception):
 class CalculoCostoError(Exception):
     # Se lanza cuando ocurre un error al calcular el costo de un servicio o reserva.
     pass
+class ManejadorErrores:
+    def __init__(self, archivo="errores.log"):
+        self.archivo = archivo
+
+    def registrar_error(self, error):
+        try:
+            with open(self.archivo, "a", encoding="utf-8") as archivo:
+                archivo.write(
+                    f"{datetime.now()} | ERROR | "
+                    f"{type(error).__name__}: {error}\n"
+                )
+        except OSError:
+            print("No fue posible escribir el error en el archivo de log.")
+
+    def registrar_evento(self, mensaje):
+        try:
+            with open(self.archivo, "a", encoding="utf-8") as archivo:
+                archivo.write(
+                    f"{datetime.now()} | EVENTO | {mensaje}\n"
+                )
+        except OSError:
+            print("No fue posible escribir el evento en el archivo de log.")
 
 class Entidad(ABC):
     def __init__(self, id, fecha_creacion = None, estado="Activo"):
@@ -536,13 +558,6 @@ class GestorSistema:
     def listar_reservas(self):
         return self.reservas.copy()
     
-class ManejadorErrores:
-    def __init__(self, archivo="software_fj.log"):
-        self.archivo = archivo
 
-    def registrar_error(self, error):
-        pass
 
-    def registrar_evento(self, mensaje):
-        pass
 
