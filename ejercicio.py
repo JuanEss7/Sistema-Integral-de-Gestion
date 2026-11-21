@@ -85,6 +85,10 @@ class Cliente(Entidad):
         return True
 
     def registrar_cliente(self):
+        self.validar()
+        LOG.registrar_evento(
+            f"Cliente {self.id} - {self.nombre} registrado."
+        )
         return True
 # Metodo encargado de actualizar los datos del cliente
     def actualizar_datos(self, nombre=None, correo=None, telefono=None):
@@ -107,6 +111,7 @@ class Cliente(Entidad):
             self.correo = correo_anterior
             self.telefono = telefono_anterior
             raise
+        LOG.registrar_evento(f"Cliente {self.id} actualizado.")
         return True
 # Metodo encargado de mostrar la informacion registrada del cliente
     def mostrar_informacion(self):
@@ -328,6 +333,7 @@ class Reserva:
 
         self.recursos_asignados = False
         self.estado = self.ESTADOS_VALIDOS[3]
+        LOG.registrar_evento(f"Reserva {self.id_reserva} procesada.")
         return True
     
     def cancelar(self):
@@ -375,10 +381,15 @@ class Reserva:
             self.costo_total = round(costo * self.cantidad, 2)
 
         except Exception as error:
+            LOG.registrar_error(error)
             raise CalculoCostoError("No fue posible calcular el costo de la reserva.") from error
 
         else:
             return self.costo_total
+        finally:
+            LOG.registrar_evento(
+                f"Se intento calcular el costo de la reserva {self.id_reserva}."
+            )
 
     def mostrar_reserva(self):
         return (
@@ -395,6 +406,8 @@ class GestorSistema:
         self.clientes = []
         self.servicios = []
         self.reservas = []
+        self.log = LOG
+        self.log.registrar_evento("Sistema Software FJ iniciado.")
 
     def registrar_cliente(self, cliente):
         try:
@@ -411,7 +424,7 @@ class GestorSistema:
             return cliente
 
         except Exception as error:
-            #Implementar log
+            self.log.registrar_error(error)
             raise
 
     def buscar_cliente(self, id):
@@ -438,6 +451,7 @@ class GestorSistema:
             return cliente
 
         except Exception as error:
+            self.log.registrar_error(error)
             raise
 
     def eliminar_cliente(self, id):
@@ -451,6 +465,7 @@ class GestorSistema:
                 raise OperacionNoPermitidaError("El cliente tiene reservas activas.")
 
         self.clientes.remove(cliente)
+        self.log.registrar_evento(f"Cliente {id} eliminado.")
         return True
 
     def buscar_servicio(self, id):
@@ -469,9 +484,11 @@ class GestorSistema:
                 raise OperacionNoPermitidaError("Ya existe un servicio con ese ID." )
 
             self.servicios.append(servicio)
+            self.log.registrar_evento(f"Servicio {servicio.id} registrado.")
             return servicio
 
         except Exception as error:
+            self.log.registrar_error(error)
             raise
 
 
@@ -486,6 +503,7 @@ class GestorSistema:
                 raise OperacionNoPermitidaError("El servicio tiene reservas activas.")
 
         self.servicios.remove(servicio)
+        self.log.registrar_evento(f"Servicio {id} eliminado.")
         return True
 
     def buscar_reserva(self, id):
@@ -511,9 +529,11 @@ class GestorSistema:
                 raise OperacionNoPermitidaError("Ya existe una reserva con ese ID.")
 
             self.reservas.append(reserva)
+            self.log.registrar_evento(f"Reserva {reserva.id_reserva} creada.")
             return reserva
 
         except Exception as error:
+            self.log.registrar_error(error)
             raise
     def confirmar_reserva(self, id):
         reserva = self.buscar_reserva(id)
@@ -525,6 +545,7 @@ class GestorSistema:
             reserva.confirmar()
             return reserva
         except Exception as error:
+            self.log.registrar_error(error)
             raise
 
     def procesar_reserva(self, id):
@@ -535,6 +556,7 @@ class GestorSistema:
             reserva.procesar()
             return reserva
         except Exception as error:
+            self.log.registrar_error(error)
             raise
 
     def cancelar_reserva(self, id):
@@ -547,6 +569,7 @@ class GestorSistema:
             reserva.cancelar()
             return reserva
         except Exception as error:
+            self.log.registrar_error(error)
             raise
 
     def listar_clientes(self):
@@ -558,6 +581,6 @@ class GestorSistema:
     def listar_reservas(self):
         return self.reservas.copy()
     
-
+LOG = ManejadorErrores()
 
 
