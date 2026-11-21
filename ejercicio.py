@@ -250,31 +250,124 @@ class AsesoriaEspecializada(Servicio):
 
 
 class Reserva:
-    def __init__(self, id_reserva, cliente, servicio,
-                 duracion, fecha, estado):
-
+    ESTADOS_VALIDOS = ("Pendiente", "Confirmada", "Cancelada", "Procesada")
+    def __init__(self, id_reserva, cliente, servicio, duracion, fecha, estado=ESTADOS_VALIDOS[0], cantidad = 1):
+        if id_reserva is None or type(id_reserva) != str or id_reserva.strip() == "":
+            raise DatosFaltantesError("El ID de la reserva es obligatorio.")
+        
         self.id_reserva = id_reserva
         self.cliente = cliente
         self.servicio = servicio
         self.duracion = duracion
         self.fecha = fecha
         self.estado = estado
+        self.cantidad = cantidad
         self.costo_total = 0
+        self.recursos_asignados = False
+        self.validar()
 
-    def confirmar(self):
-        pass
+    def validar(self):
+        if not isinstance(self.cliente, Cliente):
+            raise ReservaInvalidaError("Debe seleccionar un cliente valido.")
 
-    def cancelar(self):
-        pass
+        if not isinstance(self.servicio, Servicio):
+            raise ReservaInvalidaError("Debe seleccionar un servicio valido.")
+
+        self.cliente.validar()
+        self.servicio.validar()
+
+        if self.cliente.estado != "Activo":
+            raise ReservaInvalidaError("No se pueden crear reservas para clientes inactivos.")
+
+        if not isinstance(self.duracion, (int, float)) or self.duracion <= 0:
+            raise ReservaInvalidaError("La duracion debe ser mayor que cero.")
+
+        if not isinstance(self.cantidad, int) or self.cantidad <= 0:
+            raise ReservaInvalidaError("La cantidad debe ser un entero mayor que cero.")
+
+        if self.estado not in self.ESTADOS_VALIDOS:
+            raise ReservaInvalidaError("El estado de la reserva no es valido.")
+
+        if self.fecha is None or str(self.fecha).strip() == "":
+            raise DatosFaltantesError("La fecha de la reserva es obligatoria.")
+
+        return True
 
     def procesar(self):
-        pass
+        if self.estado != self.ESTADOS_VALIDOS[1]:
+            raise OperacionNoPermitidaError("Solo se pueden procesar reservas confirmadas.")
 
-    def calcular_total(self):
-        pass
+        # Se libera el recurso al terminar el servicio.
+        if self.recursos_asignados:
+            if isinstance(self.servicio, AlquilerEquipo):
+                self.servicio.disponibilidad = (self.servicio.cantidad_disponible > 0)
+            else:
+                self.servicio.disponibilidad = True
+
+        self.recursos_asignados = False
+        self.estado = self.ESTADOS_VALIDOS[3]
+        return True
+    
+    def cancelar(self):
+        if self.estado not in ("Pendiente", "Confirmada"):
+            raise OperacionNoPermitidaError("La reserva no se puede cancelar en su estado actual.")
+
+        if self.estado == self.ESTADOS_VALIDOS[1] and self.recursos_asignados:
+            if isinstance(self.servicio, AlquilerEquipo):
+                self.servicio.cantidad_disponible += self.cantidad
+            self.servicio.disponibilidad = True
+
+        self.recursos_asignados = False
+        self.estado = self.ESTADOS_VALIDOS[2]
+        return True
+
+    
+    def confirmar(self):
+        if self.estado != self.ESTADOS_VALIDOS[0]:
+            raise OperacionNoPermitidaError("Solo se pueden confirmar reservas pendientes.")
+
+        if not self.servicio.consultar_disponibilidad():
+            raise ServicioNoDisponibleError(f"El servicio {self.servicio.nombre} no esta disponible.")
+
+        if isinstance(self.servicio, AlquilerEquipo):
+            if self.servicio.cantidad_disponible < self.cantidad:
+                raise ServicioNoDisponibleError("No hay suficientes unidades del equipo.")
+
+            self.servicio.cantidad_disponible -= self.cantidad
+
+            if self.servicio.cantidad_disponible == 0:
+                self.servicio.disponibilidad = False
+
+        else:
+            self.servicio.disponibilidad = False
+
+        self.recursos_asignados = True
+        self.estado = self.ESTADOS_VALIDOS[1]
+        return True
+
+
+
+    def calcular_total(self,descuento=0, impuesto=0):
+        try:
+            costo = self.servicio.calcular_costo(self.duracion, descuento, impuesto)
+            self.costo_total = round(costo * self.cantidad, 2)
+
+        except Exception as error:
+            raise CalculoCostoError("No fue posible calcular el costo de la reserva.") from error
+
+        else:
+            return self.costo_total
 
     def mostrar_reserva(self):
-        pass
+        return (
+            f"Reserva: {self.id_reserva} | Cliente: {self.cliente.nombre} | "
+            f"Servicio: {self.servicio.nombre} | Fecha: {self.fecha} | "
+            f"Duracion: {self.duracion} | Cantidad: {self.cantidad} | "
+            f"Estado: {self.estado} | Total: ${self.costo_total}"
+        )
+
+
+
 class GestorSistema:
     def __init__(self):
         self.clientes = []
